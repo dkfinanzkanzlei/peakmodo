@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Peakmodo – Activate your Peak Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* ── RESET & BASE ── */
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0A0A0A;--card:#111111;--card-border:rgba(255,255,255,.07);
+    --gold:#C9A84C;--gold-light:#F5D078;--gold-dark:#8B6914;
+    --gold-bg:rgba(201,168,76,.08);--gold-border:rgba(201,168,76,.2);
+    --gold-bg2:rgba(201,168,76,.14);--gold-border2:rgba(201,168,76,.3);
+    --grad:linear-gradient(135deg,#F5D078,#C9A84C,#8B6914);
+    --gradV:linear-gradient(180deg,#F5D078 0%,#C9A04C 60%,#8B6914 100%);
+    --white:#FFFFFF;--gray:#666;--gray-dim:#333;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+  input,select,textarea{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:var(--white);border-radius:12px;padding:13px 16px;width:100%;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border .2s;-webkit-appearance:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.1)}
+  input::placeholder,textarea::placeholder{color:#444}
+  select option{background:#111}
+  textarea{resize:none}
+  label{font-size:10px;color:var(--gray);font-weight:700;letter-spacing:1px;display:block;margin-bottom:6px;text-transform:uppercase}
+  button{cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .anim{animation:fadeUp .35s ease both}
+  .fade{animation:fadeIn .3s ease both}
+
+  /* ── LAYOUT ── */
+  #app{display:flex;flex-direction:column;min-height:100vh}
+  .page{display:none;flex:1}
+  .page.active{display:flex;flex-direction:column}
+
+  /* ── AUTH PAGE ── */
+  #auth-page{align-items:center;justify-content:center;min-height:100vh;padding:24px;background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.08) 0%,transparent 60%)}
+  .auth-box{width:100%;max-width:400px;animation:fadeUp .5s ease}
+  .auth-logo{text-align:center;margin-bottom:40px}
+  .auth-logo .peak{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:6px;color:var(--white);display:block;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+  .auth-logo .modo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:6px;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;line-height:1}
+  .auth-logo .tagline{font-size:12px;color:var(--gray);letter-spacing:2px;margin-top:10px;text-transform:uppercase}
+  .auth-card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:32px}
+  .auth-tabs{display:flex;gap:0;margin-bottom:28px;background:rgba(255,255,255,.04);border-radius:12px;padding:4px}
+  .auth-tab{flex:1;padding:10px;border:none;background:transparent;color:var(--gray);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;border-radius:9px;transition:all .2s}
+  .auth-tab.active{background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-border)}
+  .auth-field{margin-bottom:16px}
+  .auth-btn{width:100%;padding:15px;background:var(--grad);color:#000;border:none;border-radius:13px;font-weight:800;font-size:15px;letter-spacing:.3px;margin-top:8px}
+  .auth-btn:hover{opacity:.9;transform:translateY(-1px)}
+  .auth-btn:active{transform:scale(.98)}
+  .auth-error{background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.2);color:#f87171;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+  .auth-error.show{display:block}
+  .auth-success{background:var(--gold-bg);border:1px solid var(--gold-border);color:var(--gold-light);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+  .auth-success.show{display:block}
+
+  /* ── MAIN APP ── */
+  #main-page{flex-direction:row}
+
+  /* Sidebar (desktop) */
+  .sidebar{width:240px;background:#0D0D0D;border-right:1px solid var(--card-border);display:flex;flex-direction:column;padding:32px 16px 24px;position:fixed;top:0;left:0;height:100vh;z-index:100}
+  .sidebar-logo{margin-bottom:40px;padding:0 8px}
+  .sidebar-logo .peak{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--white);display:block;line-height:1}
+  .sidebar-logo .modo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;line-height:1}
+  .sidebar-nav{display:flex;flex-direction:column;gap:4px;flex:1}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:none;background:transparent;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;width:100%;text-align:left;letter-spacing:.2px;transition:all .2s}
+  .nav-item:hover{background:rgba(255,255,255,.04);color:var(--white)}
+  .nav-item.active{background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-border)}
+  .nav-item .icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;background:rgba(255,255,255,.04)}
+  .nav-item.active .icon{background:var(--gold-bg2);border:1px solid var(--gold-border)}
+  .sidebar-user{border-top:1px solid var(--card-border);padding-top:16px;margin-top:auto}
+  .user-info{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px}
+  .user-avatar{width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#000;flex-shrink:0}
+  .user-name{font-size:13px;font-weight:700;color:var(--white)}
+  .user-email{font-size:10px;color:var(--gray);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
+  .logout-btn{width:100%;padding:10px;background:rgba(255,255,255,.04);border:1px solid var(--card-border);border-radius:10px;color:var(--gray);font-size:12px;font-weight:700;margin-top:8px;letter-spacing:.5px}
+  .logout-btn:hover{color:var(--white);background:rgba(255,255,255,.07)}
+
+  /* Main content */
+  .main-content{margin-left:240px;flex:1;min-height:100vh;padding:40px 48px;max-width:1200px}
+
+  /* ── CARDS ── */
+  .card{background:var(--card);border:1px solid var(--card-border);border-radius:20px;padding:24px}
+  .card-gold{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:20px;padding:24px}
+  .section-label{font-size:10px;color:var(--gold);font-weight:700;letter-spacing:3px;margin-bottom:6px;text-transform:uppercase}
+  .section-title{font-size:28px;font-weight:800;margin-bottom:24px;line-height:1.1}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+  /* ── BUTTONS ── */
+  .btn-gold{background:var(--grad);color:#000;border:none;border-radius:12px;padding:12px 20px;font-weight:800;font-size:13px;letter-spacing:.3px;display:inline-flex;align-items:center;gap:6px}
+  .btn-gold:hover{opacity:.9;transform:translateY(-1px)}
+  .btn-gold.sm{padding:8px 14px;font-size:12px;border-radius:9px}
+  .btn-ghost{background:rgba(255,255,255,.05);color:var(--white);border:1px solid var(--card-border);border-radius:12px;padding:12px 20px;font-weight:600;font-size:13px}
+  .btn-ghost:hover{background:rgba(255,255,255,.08)}
+  .tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-border)}
+
+  /* ── PROGRESS ── */
+  .progress-track{height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;margin-top:8px}
+  .progress-fill{height:100%;background:var(--grad);border-radius:2px;transition:width .6s ease}
+  .progress-track.sm{height:2px;margin-top:5px}
+
+  /* ── MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(12px)}
+  .modal-overlay.open{display:flex}
+  .modal-box{background:#0F0F0F;border:1px solid var(--card-border);border-radius:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:fadeUp .3s ease}
+  .modal-header{position:sticky;top:0;background:#0F0F0F;padding:20px 24px 16px;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;z-index:1;border-radius:24px 24px 0 0}
+  .modal-title{font-size:16px;font-weight:800;letter-spacing:.3px}
+  .modal-close{background:rgba(255,255,255,.06);border:1px solid var(--card-border);color:var(--gray);width:30px;height:30px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center}
+  .modal-close:hover{color:var(--white)}
+  .modal-body{padding:24px}
+  .form-field{margin-bottom:16px}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:all .3s ease;background:#111;border:1px solid var(--gold-border);color:var(--gold);padding:10px 22px;border-radius:100px;font-size:13px;font-weight:700;letter-spacing:.3px;white-space:nowrap;z-index:9000;pointer-events:none}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── HABIT CARD ── */
+  .habit-card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;transition:all .2s}
+  .habit-card.done{background:var(--gold-bg);border-color:var(--gold-border)}
+  .habit-icon{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .habit-card.done .habit-icon{background:var(--gold-bg2);border-color:var(--gold-border)}
+  .habit-check{width:38px;height:38px;border-radius:10px;border:1.5px solid rgba(255,255,255,.12);background:transparent;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--gray-dim);flex-shrink:0;transition:all .2s}
+  .habit-card.done .habit-check{border-color:var(--gold);background:var(--gold-bg);color:var(--gold)}
+
+  /* ── CHAT ── */
+  .chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 220px)}
+  .chat-messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:16px}
+  .msg{display:flex;align-items:flex-start;gap:10px;animation:fadeUp .25s ease}
+  .msg.user{flex-direction:row-reverse}
+  .msg-bubble{max-width:72%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55}
+  .msg.assistant .msg-bubble{background:var(--card);border:1px solid var(--card-border);color:#ddd;border-radius:18px 18px 18px 4px}
+  .msg.user .msg-bubble{background:var(--gold-bg);border:1px solid var(--gold-border);color:var(--gold-light);border-radius:18px 18px 4px 18px}
+  .chat-input-row{display:flex;gap:10px;padding-top:16px;border-top:1px solid var(--card-border)}
+  .chat-input{flex:1;padding:13px 18px;border-radius:13px}
+  .mentor-avatar-sm{width:36px;height:36px;border-radius:10px;overflow:hidden;flex-shrink:0;border:1px solid var(--gold-border);background:#0A0A0A}
+  .mentor-avatar-sm img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
+
+  /* ── GAUGE SVG ── */
+  .gauge-wrap{display:flex;justify-content:center;position:relative;height:100px;margin:8px 0}
+  .gauge-label{position:absolute;bottom:0;left:50%;transform:translateX(-50%);text-align:center}
+
+  /* ── SLEEP CARD ── */
+  .sleep-times{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .sleep-time-box{text-align:center;padding:16px;background:rgba(255,255,255,.02);border-radius:14px;border:1px solid var(--card-border)}
+  .sleep-time-val{font-size:26px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+  .sleep-time-label{font-size:10px;color:var(--gray);margin-top:4px;letter-spacing:1px;font-weight:700}
+
+  /* ── HEATMAP ── */
+  .heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
+  .heatmap-cell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;transition:all .3s}
+  .heatmap-month{text-align:center;font-size:8px;color:var(--gray-dim);margin-top:3px}
+
+  /* ── QUOTE ── */
+  .quote-card{background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:18px;padding:20px}
+  .quote-label{font-size:9px;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:8px}
+  .quote-text{font-size:14px;color:#ddd;line-height:1.6;font-style:italic}
+
+  /* ── LOADING SPINNER ── */
+  .spinner{width:20px;height:20px;border:2px solid rgba(201,168,76,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+
+  /* ── RESPONSIVE MOBILE ── */
+  @media(max-width:768px){
+    .sidebar{transform:translateX(-100%);transition:transform .3s ease}
+    .sidebar.open{transform:translateX(0)}
+    .main-content{margin-left:0;padding:20px 16px 100px}
+    .grid-3{grid-template-columns:1fr 1fr}
+    .grid-4{grid-template-columns:1fr 1fr}
+    .mobile-nav{display:flex!important}
+    .section-title{font-size:22px}
+    .chat-wrap{height:calc(100vh - 260px)}
+  }
+
+  /* ── MOBILE BOTTOM NAV ── */
+  .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,.97);border-top:1px solid var(--card-border);padding:10px 8px 24px;justify-content:space-around;z-index:200;backdrop-filter:blur(24px)}
+  .mob-btn{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--gray-dim);font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 10px;border-radius:10px;transition:color .2s}
+  .mob-btn.active{color:var(--gold)}
+  .mob-btn .mob-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;border:1px solid transparent;transition:all .2s}
+  .mob-btn.active .mob-icon{background:var(--gold-bg);border-color:var(--gold-border)}
+
+  /* ── SLEEP MODAL ── */
+  .sleep-options{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .sleep-opt{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:rgba(255,255,255,.03);border:1px solid var(--card-border);border-radius:13px;color:var(--white);font-size:13px;font-weight:600;width:100%;text-align:left}
+  .sleep-opt:hover{background:rgba(255,255,255,.06);border-color:var(--gold-border)}
+  .technique-item{padding:13px 16px;background:rgba(255,255,255,.03);border:1px solid var(--card-border);border-radius:13px;cursor:pointer;transition:all .15s;margin-bottom:8px}
+  .technique-item.open{background:var(--gold-bg);border-color:var(--gold-border)}
+  .technique-title{font-size:13px;font-weight:700;color:var(--white)}
+  .technique-desc{font-size:12px;color:#aaa;line-height:1.5;margin-top:8px;display:none}
+  .technique-item.open .technique-desc{display:block}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ AUTH PAGE ══ -->
+  <div id="auth-page" class="page active">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <span class="peak">PEAK</span>
+        <span class="modo">MODO</span>
+        <span class="tagline">Activate your Peak Mode</span>
+      </div>
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchAuthTab('login')">Anmelden</button>
+          <button class="auth-tab" onclick="switchAuthTab('register')">Registrieren</button>
+        </div>
+        <div id="auth-error" class="auth-error"></div>
+        <div id="auth-success" class="auth-success"></div>
+
+        <!-- LOGIN -->
+        <div id="login-form">
+          <div class="auth-field"><label>E-Mail</label><input type="email" id="login-email" placeholder="deine@email.de"/></div>
+          <div class="auth-field"><label>Passwort</label><input type="password" id="login-pw" placeholder="••••••••"/></div>
+          <button class="auth-btn" onclick="doLogin()">Anmelden →</button>
+          <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--gray)">Noch kein Account? Klick auf Registrieren.</p>
+        </div>
+
+        <!-- REGISTER -->
+        <div id="register-form" style="display:none">
+          <div class="auth-field"><label>Name</label><input type="text" id="reg-name" placeholder="Dein Name"/></div>
+          <div class="auth-field"><label>E-Mail</label><input type="email" id="reg-email" placeholder="deine@email.de"/></div>
+          <div class="auth-field"><label>Passwort</label><input type="password" id="reg-pw" placeholder="Min. 6 Zeichen"/></div>
+          <button class="auth-btn" onclick="doRegister()">Account erstellen →</button>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- ══ MAIN APP ══ -->
+  <div id="main-page" class="page">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <span class="peak" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--white);display:block;line-height:1">PEAK</span>
+        <span class="modo" style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;line-height:1">MODO</span>
+      </div>
+      <div class="sidebar-nav">
+        <button class="nav-item active" onclick="showTab('dash')" id="nav-dash">
+          <div class="icon">◈</div> Dashboard
+        </button>
+        <button class="nav-item" onclick="showTab('goals')" id="nav-goals">
+          <div class="icon">◎</div> Ziele
+        </button>
+        <button class="nav-item" onclick="showTab('habits')" id="nav-habits">
+          <div class="icon">◉</div> Habits
+        </button>
+        <button class="nav-item" onclick="showTab('mentor')" id="nav-mentor">
+          <div class="icon">▲</div> Mentor
+        </button>
+        <button class="nav-item" onclick="showTab('wins')" id="nav-wins">
+          <div class="icon">◬</div> Wins
+        </button>
+        <button class="nav-item" onclick="showTab('settings')" id="nav-settings">
+          <div class="icon">◧</div> Einstellungen
+        </button>
+      </div>
+      <div class="sidebar-user">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebar-avatar">P</div>
+          <div>
+            <div class="user-name" id="sidebar-name">–</div>
+            <div class="user-email" id="sidebar-email">–</div>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Abmelden</button>
+      </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main class="main-content">
+
+      <!-- ── DASHBOARD ── -->
+      <section id="tab-dash" class="tab-content active">
+        <div class="section-label">HEUTE</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+          <div class="section-title" id="dash-greeting" style="margin-bottom:0">Guten Morgen 👋</div>
+          <button class="btn-gold sm" onclick="openSleepModal()">◐ Schlaf-Coach</button>
+        </div>
+
+        <!-- Quote -->
+        <div class="quote-card anim" style="margin-bottom:20px">
+          <div class="quote-label">PEAKMODO · QUOTE DES TAGES</div>
+          <div class="quote-text" id="daily-quote">Lade…</div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 anim" style="margin-bottom:20px" id="kpi-row">
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1" id="kpi-goals">0</div>
+            <div style="font-size:10px;color:var(--gray);margin-top:4px;font-weight:600">AKTIVE ZIELE</div>
+            <div style="font-size:9px;color:var(--gray-dim);margin-top:2px" id="kpi-goals-sub">0 erreicht</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1" id="kpi-habits">0/0</div>
+            <div style="font-size:10px;color:var(--gray);margin-top:4px;font-weight:600">HABITS HEUTE</div>
+            <div style="font-size:9px;color:var(--gray-dim);margin-top:2px" id="kpi-prod">0% erledigt</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1" id="kpi-wins">0</div>
+            <div style="font-size:10px;color:var(--gray);margin-top:4px;font-weight:600">WINS / MONAT</div>
+            <div style="font-size:9px;color:var(--gray-dim);margin-top:2px" id="kpi-wins-sub">0 gesamt</div>
+          </div>
+          <div class="card" style="text-align:center">
+            <div style="font-size:32px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1" id="kpi-streak">1</div>
+            <div style="font-size:10px;color:var(--gray);margin-top:4px;font-weight:600">TAGE STREAK</div>
+            <div style="font-size:9px;color:var(--gold);margin-top:2px">🔥 in Folge</div>
+          </div>
+        </div>
+
+        <div class="grid-2 anim" style="margin-bottom:20px">
+          <!-- Gauge -->
+          <div class="card">
+            <div class="section-label" style="margin-bottom:12px">PRODUKTIVITÄT HEUTE</div>
+            <div class="gauge-wrap">
+              <svg viewBox="0 0 180 100" style="width:170px;overflow:visible">
+                <defs><linearGradient id="gg2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#F5D078"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs>
+                <path d="M 22 90 A 68 68 0 0 1 158 90" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="8" stroke-linecap="round"/>
+                <path id="gauge-path" d="M 22 90 A 68 68 0 0 1 22 90" fill="none" stroke="url(#gg2)" stroke-width="8" stroke-linecap="round" style="transition:d .8s ease"/>
+              </svg>
+              <div class="gauge-label">
+                <div style="font-size:28px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="gauge-pct">0%</div>
+                <div style="font-size:10px;color:var(--gray);letter-spacing:1px">PRODUKTIVITÄT</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sleep -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <div class="section-label">SCHLAFPLAN</div>
+              <button class="btn-gold sm" onclick="openModal('sleep-settings-modal')">Bearbeiten</button>
+            </div>
+            <div class="sleep-times">
+              <div class="sleep-time-box">
+                <div class="sleep-time-val" id="sleep-bed-disp">23:00</div>
+                <div class="sleep-time-label">SCHLAFEN</div>
+              </div>
+              <div class="sleep-time-box">
+                <div class="sleep-time-val" id="sleep-wake-disp">07:00</div>
+                <div class="sleep-time-label">AUFWACHEN</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 anim">
+          <!-- Active Goals -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+              <div class="section-label" style="margin-bottom:0">TOP ZIELE</div>
+              <button class="btn-gold sm" onclick="showTab('goals')">Alle →</button>
+            </div>
+            <div id="dash-goals-list"><div style="color:var(--gray);font-size:13px">Noch keine Ziele gesetzt.</div></div>
+          </div>
+
+          <!-- Wins Heatmap -->
+          <div class="card">
+            <div class="section-label" style="margin-bottom:16px">WINS <span id="heatmap-year">2025</span></div>
+            <div class="heatmap" id="wins-heatmap"></div>
+          </div>
+        </div>
+
+        <!-- Mentor CTA -->
+        <div class="card-gold anim" style="margin-top:20px;display:flex;align-items:center;gap:16px;cursor:pointer;padding:20px 24px" onclick="showTab('mentor')">
+          <div class="mentor-avatar-sm" style="width:52px;height:52px;border-radius:14px">
+            <img src="" id="mentor-cta-img" alt="Mentor" style="width:100%;height:100%;object-fit:contain;object-position:center bottom"/>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--gold-light)">Peakmodo Mentor</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">Frag deinen persönlichen Coach</div>
+          </div>
+          <span style="color:var(--gold);font-size:20px">›</span>
+        </div>
+      </section>
+
+      <!-- ── GOALS ── -->
+      <section id="tab-goals" class="tab-content" style="display:none">
+        <div class="section-label">DEIN EMPIRE</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
+          <div class="section-title" style="margin-bottom:0">Meine Ziele</div>
+          <button class="btn-gold" onclick="openModal('goal-modal')">+ Neues Ziel</button>
+        </div>
+        <div id="goals-list" style="display:flex;flex-direction:column;gap:14px"></div>
+      </section>
+
+      <!-- ── HABITS ── -->
+      <section id="tab-habits" class="tab-content" style="display:none">
+        <div class="section-label">GEWOHNHEITEN</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
+          <div class="section-title" style="margin-bottom:0">Habits</div>
+          <button class="btn-gold" onclick="openModal('habit-modal')">+ Hinzufügen</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="font-size:13px;color:var(--gray)" id="habits-progress-text">0 von 0 heute erledigt</span>
+          <span style="font-size:12px;font-weight:700;color:var(--gold)" id="habits-pct-text">0%</span>
+        </div>
+        <div id="habits-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </section>
+
+      <!-- ── MENTOR ── -->
+      <section id="tab-mentor" class="tab-content" style="display:none">
+        <div class="section-label">PERSÖNLICHER COACH</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+          <div class="mentor-avatar-sm" style="width:52px;height:52px;border-radius:14px">
+            <img src="" id="mentor-tab-img" alt="Mentor" style="width:100%;height:100%;object-fit:contain;object-position:center bottom"/>
+          </div>
+          <div>
+            <div style="font-size:22px;font-weight:800">Dein Mentor</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">Direkt. Ehrlich. Motivierend.</div>
+          </div>
+        </div>
+
+        <!-- Quick Topics -->
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;scrollbar-width:none">
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Gib mir Motivation für heute')">Motivation</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Business-Tipps für mehr Umsatz')">Business-Tipps</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Wie verbessere ich meinen Schlaf?')">Schlaf verbessern</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Wie erreiche ich meine Ziele schneller?')">Ziele erreichen</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Tipps für bessere Finanzen und mehr Einkommen')">Finanzen</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Wie stärke ich meine Disziplin?')">Disziplin</button>
+          <button class="tag" style="white-space:nowrap;cursor:pointer;padding:7px 14px;font-size:11px" onclick="sendMentor('Erstell mir einen Sportplan')">Sport-Plan</button>
+        </div>
+
+        <div class="chat-wrap">
+          <div class="chat-messages" id="chat-messages">
+            <div style="text-align:center;padding:40px 0;color:var(--gray)">
+              <div style="font-size:40px;margin-bottom:12px;opacity:.3">▲</div>
+              <div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:6px">Bereit für deinen nächsten Level?</div>
+              <div style="font-size:13px;line-height:1.6">Ich bin dein persönlicher Mentor.<br/>Frag mich alles – Ziele, Business, Schlaf, Motivation.</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" class="chat-input" id="mentor-input" placeholder="Schreib deinem Mentor…" onkeydown="if(event.key==='Enter')sendMentor()"/>
+            <button class="btn-gold" onclick="sendMentor()">→</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── WINS ── -->
+      <section id="tab-wins" class="tab-content" style="display:none">
+        <div class="section-label">HALL OF FAME</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
+          <div class="section-title" style="margin-bottom:0">Deine Wins</div>
+          <button class="btn-gold" onclick="openModal('win-modal')">+ Win</button>
+        </div>
+        <div class="quote-card" style="margin-bottom:20px">
+          <div class="quote-label">MOTIVATION</div>
+          <div class="quote-text" id="wins-quote">Lade…</div>
+        </div>
+        <div id="wins-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      </section>
+
+      <!-- ── SETTINGS ── -->
+      <section id="tab-settings" class="tab-content" style="display:none">
+        <div class="section-label">KONFIGURATION</div>
+        <div class="section-title">Einstellungen</div>
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:520px">
+          <div class="card">
+            <div class="section-label" style="margin-bottom:12px">PROFIL</div>
+            <div class="form-field"><label>Name</label><input type="text" id="settings-name" placeholder="Dein Name"/></div>
+            <button class="btn-gold" onclick="saveSettings()">Speichern</button>
+          </div>
+          <div class="card">
+            <div class="section-label" style="margin-bottom:12px">SCHLAFPLAN</div>
+            <div class="grid-2" style="margin-bottom:16px">
+              <div class="form-field" style="margin:0"><label>Schlafenszeit</label><input type="time" id="settings-bedtime" value="23:00"/></div>
+              <div class="form-field" style="margin:0"><label>Aufwachzeit</label><input type="time" id="settings-waketime" value="07:00"/></div>
+            </div>
+            <button class="btn-gold" onclick="saveSleepSettings()">Schlafplan speichern</button>
+          </div>
+          <div class="card" style="border-color:rgba(255,80,80,.15)">
+            <div class="section-label" style="margin-bottom:12px;color:#f87171">GEFAHRENZONE</div>
+            <p style="font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.5">Alle Daten löschen ist permanent und kann nicht rückgängig gemacht werden.</p>
+            <button onclick="clearAllData()" style="background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.2);color:#f87171;border-radius:12px;padding:12px 20px;font-weight:700;font-size:13px">Alle Daten löschen</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Mobile Nav -->
+  <div class="mobile-nav" id="mobile-nav">
+    <button class="mob-btn active" onclick="showTab('dash')" id="mob-dash"><div class="mob-icon">H</div>Home</button>
+    <button class="mob-btn" onclick="showTab('goals')" id="mob-goals"><div class="mob-icon">Z</div>Ziele</button>
+    <button class="mob-btn" onclick="showTab('habits')" id="mob-habits"><div class="mob-icon">H</div>Habits</button>
+    <button class="mob-btn" onclick="showTab('mentor')" id="mob-mentor"><div class="mob-icon">M</div>Mentor</button>
+    <button class="mob-btn" onclick="showTab('wins')" id="mob-wins"><div class="mob-icon">W</div>Wins</button>
+  </div>
+
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- GOAL MODAL -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Neues Ziel</span>
+      <button class="modal-close" onclick="closeModal('goal-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>Ziel-Titel</label><input type="text" id="goal-title" placeholder="z.B. Dieses Jahr 100.000 € verdienen"/></div>
+      <div class="form-field"><label>Kategorie</label>
+        <select id="goal-cat">
+          <option value="finance">₿ Finanzen</option>
+          <option value="business">◈ Business</option>
+          <option value="health">◉ Gesundheit</option>
+          <option value="sport">◎ Sport</option>
+          <option value="sleep">◐ Schlaf</option>
+          <option value="spirit">◬ Spiritualität</option>
+          <option value="productivity">◧ Produktivität</option>
+          <option value="relations">◑ Beziehungen</option>
+          <option value="learning">◫ Lernen</option>
+          <option value="growth">▲ Entwicklung</option>
+        </select>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="form-field" style="margin:0"><label>Zielwert</label><input type="number" id="goal-target" placeholder="100000"/></div>
+        <div class="form-field" style="margin:0"><label>Einheit</label><input type="text" id="goal-unit" placeholder="€, Follower…"/></div>
+      </div>
+      <div class="form-field"><label>Deadline</label><input type="date" id="goal-deadline"/></div>
+      <div class="form-field"><label>Beschreibung</label><textarea id="goal-desc" rows="2" placeholder="Was genau ist dein Ziel?"></textarea></div>
+      <div class="form-field"><label>Strategie</label><textarea id="goal-strategy" rows="3" placeholder="Wie wirst du es erreichen?"></textarea></div>
+      <div class="form-field"><label>Nächste Schritte (je Zeile ein Schritt)</label><textarea id="goal-steps" rows="3" placeholder="Schritt 1&#10;Schritt 2&#10;Schritt 3"></textarea></div>
+      <div class="form-field"><label>Tägliche Aufgaben</label><textarea id="goal-daily" rows="2" placeholder="Was machst du jeden Tag für dieses Ziel?"></textarea></div>
+      <button class="btn-gold" style="width:100%;padding:14px" onclick="saveGoal()">Ziel speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- HABIT MODAL -->
+<div class="modal-overlay" id="habit-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Neuer Habit</span>
+      <button class="modal-close" onclick="closeModal('habit-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>Name</label><input type="text" id="habit-title" placeholder="z.B. Wasser trinken"/></div>
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="form-field" style="margin:0"><label>Symbol</label><input type="text" id="habit-icon" placeholder="◈" maxlength="4"/></div>
+        <div class="form-field" style="margin:0"><label>Zielwert</label><input type="number" id="habit-target" placeholder="8"/></div>
+      </div>
+      <div class="form-field"><label>Einheit</label><input type="text" id="habit-unit" placeholder="Gläser, Min., Seiten…"/></div>
+      <button class="btn-gold" style="width:100%;padding:14px" onclick="saveHabit()">Habit hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<!-- WIN MODAL -->
+<div class="modal-overlay" id="win-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Win eintragen</span>
+      <button class="modal-close" onclick="closeModal('win-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>Was hast du erreicht?</label><input type="text" id="win-title" placeholder="Mein erster 5-stelliger Monat!"/></div>
+      <div class="form-field"><label>Kategorie</label>
+        <select id="win-cat">
+          <option value="finance">₿ Finanzen</option>
+          <option value="business">◈ Business</option>
+          <option value="health">◉ Gesundheit</option>
+          <option value="sport">◎ Sport</option>
+          <option value="growth">▲ Entwicklung</option>
+          <option value="other">◬ Sonstiges</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Details (optional)</label><textarea id="win-note" rows="3" placeholder="Was war der Schlüssel?"></textarea></div>
+      <button class="btn-gold" style="width:100%;padding:14px" onclick="saveWin()">Win feiern 🎉</button>
+    </div>
+  </div>
+</div>
+
+<!-- SLEEP COACH MODAL -->
+<div class="modal-overlay" id="sleep-coach-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Schlaf-Coach</span>
+      <button class="modal-close" onclick="closeModal('sleep-coach-modal')">×</button>
+    </div>
+    <div class="modal-body" id="sleep-coach-body"></div>
+  </div>
+</div>
+
+<!-- SLEEP SETTINGS MODAL -->
+<div class="modal-overlay" id="sleep-settings-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Schlafplan bearbeiten</span>
+      <button class="modal-close" onclick="closeModal('sleep-settings-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label>Schlafenszeit</label><input type="time" id="modal-bedtime" value="23:00"/></div>
+      <div class="form-field"><label>Aufwachzeit</label><input type="time" id="modal-waketime" value="07:00"/></div>
+      <button class="btn-gold" style="width:100%;padding:14px" onclick="saveSleepFromModal()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOAL DETAIL MODAL -->
+<div class="modal-overlay" id="goal-detail-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="goal-detail-title">Ziel</span>
+      <button class="modal-close" onclick="closeModal('goal-detail-modal')">×</button>
+    </div>
+    <div class="modal-body" id="goal-detail-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   ⚙️  KONFIGURATION – HIER DEINE SUPABASE KEYS EINTRAGEN
+   1. Gehe auf supabase.com → Dein Projekt → Settings → API
+   2. Kopiere "Project URL" und "anon public key"
+══════════════════════════════════════════════════════════ */
+const SUPABASE_URL = "https://xofquodeqaydophyykqm.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5XzTxJ2kKd-JMWuecGDrNg_4Ucsn6xu";
+
+/* ══════════════════════════════════════════════════════════
+   MENTOR IMAGE – Base64 wird beim Laden gesetzt
+══════════════════════════════════════════════════════════ */
+const MENTOR_IMG = ""; // Wird per localStorage gecacht oder leer gelassen
+
+/* ══════════════════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════════════════ */
+const QUOTES = [
+  "Disziplin zeigt sich nicht nur beim Arbeiten, sondern auch darin, rechtzeitig schlafen zu gehen.",
+  "Dein zukünftiges Ich profitiert von dem, was du heute kontrollierst.",
+  "Wer morgen stark sein will, muss heute klug abschalten.",
+  "Ziele erreicht man nicht durch Chaos, sondern durch klare Routinen.",
+  "Wenn es keinen vernünftigen Grund gibt, wach zu bleiben, ist Schlaf dein wichtigster Schritt.",
+  "Erfolg ist das Ergebnis von tausend kleinen Entscheidungen – fang mit der nächsten an.",
+  "Nicht Motivation bringt dich ans Ziel. Gewohnheiten tun es.",
+  "Der Unterschied zwischen gut und außergewöhnlich ist Konsequenz.",
+  "Wer seine Zeit nicht kontrolliert, wird von ihr kontrolliert.",
+  "Stärke ist nicht, niemals zu fallen. Stärke ist, jeden Tag wieder aufzustehen.",
+  "Mittelmäßigkeit ist komfortabel. Großartigkeit kostet dich etwas.",
+  "Mach heute die Arbeit, für die du dich morgen bedankst.",
+  "Ablenkung ist der Feind deiner Ziele. Fokus ist deine Waffe.",
+  "Jeder Tag ist ein Investment in dein zukünftiges Selbst.",
+  "Erfolgreiche Menschen tun das, was andere vermeiden.",
+  "Deine Energie folgt deiner Aufmerksamkeit. Wähle bewusst.",
+  "Das Unbehagen des Fortschritts ist besser als der Schmerz des Stillstands.",
+  "Kleine Schritte jeden Tag bauen Großes auf.",
+];
+
+const GOAL_CATS = {
+  finance:{label:"Finanzen",icon:"₿"},business:{label:"Business",icon:"◈"},
+  health:{label:"Gesundheit",icon:"◉"},sport:{label:"Sport",icon:"◎"},
+  sleep:{label:"Schlaf",icon:"◐"},spirit:{label:"Spiritualität",icon:"◬"},
+  productivity:{label:"Produktivität",icon:"◧"},relations:{label:"Beziehungen",icon:"◑"},
+  learning:{label:"Lernen",icon:"◫"},growth:{label:"Entwicklung",icon:"▲"},other:{label:"Sonstiges",icon:"◬"},
+};
+
+const TODAY = () => new Date().toDateString();
+const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+let sb = null;
+let currentUser = null;
+let appData = {
+  goals:[], habits:[], wins:[], mentorChat:[],
+  sleepSchedule:{bedtime:"23:00",wakeTime:"07:00",enabled:true,lastShown:""},
+  stats:{streak:1,lastSeen:TODAY(),xp:0},
+  settings:{name:"",quoteIndex:0}
+};
+let sleepCheckInterval = null;
+let mentorLoading = false;
+
+/* ══════════════════════════════════════════════════════════
+   SUPABASE INIT
+══════════════════════════════════════════════════════════ */
+function initSupabase() {
+  if (SUPABASE_URL === "DEINE_SUPABASE_URL_HIER") {
+    console.warn("⚠️ Supabase Keys nicht konfiguriert – nutze localStorage");
+    return false;
+  }
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    return true;
+  } catch(e) {
+    console.error("Supabase Fehler:", e);
+    return false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   DATA PERSISTENCE
+══════════════════════════════════════════════════════════ */
+async function saveData() {
+  if (sb && currentUser) {
+    try {
+      await sb.from('user_data').upsert({
+        user_id: currentUser.id,
+        data: appData,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    } catch(e) { console.error("Save error:", e); }
+  }
+  // Always also save to localStorage as backup
+  localStorage.setItem('peakmodo_data_' + (currentUser?.id || 'local'), JSON.stringify(appData));
+}
+
+async function loadData() {
+  const lsKey = 'peakmodo_data_' + (currentUser?.id || 'local');
+  if (sb && currentUser) {
+    try {
+      const { data } = await sb.from('user_data').select('data').eq('user_id', currentUser.id).single();
+      if (data?.data) {
+        appData = { ...appData, ...data.data };
+        localStorage.setItem(lsKey, JSON.stringify(appData));
+        return;
+      }
+    } catch(e) {}
+  }
+  // Fallback localStorage
+  const stored = localStorage.getItem(lsKey);
+  if (stored) { try { appData = { ...appData, ...JSON.parse(stored) }; } catch(e) {} }
+}
+
+/* ══════════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════════ */
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('login-form').style.display = tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'block':'none';
+  clearAuthMessages();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.classList.add('show');
+}
+function showAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  el.textContent = msg; el.classList.add('show');
+}
+function clearAuthMessages() {
+  document.getElementById('auth-error').classList.remove('show');
+  document.getElementById('auth-success').classList.remove('show');
+}
+
+async function doLogin() {
+  clearAuthMessages();
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (!email || !pw) return showAuthError('Bitte E-Mail und Passwort eingeben.');
+
+  if (!sb) {
+    // Demo-Modus ohne Supabase
+    currentUser = { id:'local', email, user_metadata:{full_name: email.split('@')[0]} };
+    await onLogin();
+    return;
+  }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) return showAuthError(error.message);
+  currentUser = data.user;
+  await onLogin();
+}
+
+async function doRegister() {
+  clearAuthMessages();
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-pw').value;
+  if (!name || !email || !pw) return showAuthError('Alle Felder ausfüllen.');
+  if (pw.length < 6) return showAuthError('Passwort min. 6 Zeichen.');
+
+  if (!sb) {
+    currentUser = { id:'local', email, user_metadata:{full_name:name} };
+    appData.settings.name = name;
+    await onLogin();
+    return;
+  }
+  const { data, error } = await sb.auth.signUp({ email, password:pw, options:{ data:{ full_name:name } } });
+  if (error) return showAuthError(error.message);
+  if (data.user && !data.session) {
+    showAuthSuccess('Bestätigungs-E-Mail gesendet! Bitte prüfe dein Postfach.');
+    return;
+  }
+  currentUser = data.user;
+  appData.settings.name = name;
+  await onLogin();
+}
+
+async function doLogout() {
+  if (sb) await sb.auth.signOut();
+  currentUser = null;
+  appData = { goals:[], habits:[], wins:[], mentorChat:[], sleepSchedule:{bedtime:"23:00",wakeTime:"07:00",enabled:true,lastShown:""}, stats:{streak:1,lastSeen:TODAY(),xp:0}, settings:{name:"",quoteIndex:0} };
+  clearInterval(sleepCheckInterval);
+  showPage('auth-page');
+}
+
+async function onLogin() {
+  await loadData();
+  // Streak check
+  const today = TODAY();
+  const last = appData.stats?.lastSeen;
+  if (last !== today) {
+    const yest = new Date(Date.now()-86400000).toDateString();
+    appData.stats.streak = last===yest ? (appData.stats.streak||0)+1 : 1;
+    // Rotate quote
+    appData.settings.quoteIndex = ((appData.settings.quoteIndex||0)+1) % QUOTES.length;
+    appData.stats.lastSeen = today;
+    await saveData();
+  }
+  showPage('main-page');
+  initApp();
+}
+
+/* ══════════════════════════════════════════════════════════
+   APP INIT
+══════════════════════════════════════════════════════════ */
+function initApp() {
+  const name = currentUser?.user_metadata?.full_name || appData.settings.name || currentUser?.email?.split('@')[0] || "Peakmodo";
+  document.getElementById('sidebar-name').textContent = name;
+  document.getElementById('sidebar-email').textContent = currentUser?.email || '';
+  document.getElementById('sidebar-avatar').textContent = name[0]?.toUpperCase() || 'P';
+  document.getElementById('settings-name').value = appData.settings.name || name;
+
+  // Greeting
+  const h = new Date().getHours();
+  const gr = h<12?"Guten Morgen":h<17?"Guten Tag":"Guten Abend";
+  document.getElementById('dash-greeting').textContent = `${gr}, ${name.split(' ')[0]} 👋`;
+
+  // Quote
+  const qi = appData.settings?.quoteIndex || 0;
+  document.getElementById('daily-quote').textContent = QUOTES[qi % QUOTES.length];
+  document.getElementById('wins-quote').textContent = QUOTES[(qi+3) % QUOTES.length];
+
+  // Sleep
+  updateSleepDisplay();
+  document.getElementById('settings-bedtime').value = appData.sleepSchedule?.bedtime || '23:00';
+  document.getElementById('settings-waketime').value = appData.sleepSchedule?.wakeTime || '07:00';
+
+  // Heatmap
+  renderHeatmap();
+
+  // Sleep check
+  clearInterval(sleepCheckInterval);
+  sleepCheckInterval = setInterval(checkSleepTime, 30000);
+
+  // Goal deadline default
+  document.getElementById('goal-deadline').value = `${new Date().getFullYear()}-12-31`;
+
+  // Set mentor images
+  const mentorSrc = localStorage.getItem('peakmodo_mentor_img') || '';
+  ['mentor-cta-img','mentor-tab-img'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && mentorSrc) el.src = mentorSrc;
+  });
+
+  renderAll();
+  showTab('dash');
+}
+
+function renderAll() {
+  renderDashGoals();
+  renderGoals();
+  renderHabits();
+  renderWins();
+  updateKPIs();
+  updateGauge();
+}
+
+/* ══════════════════════════════════════════════════════════
+   TAB NAVIGATION
+══════════════════════════════════════════════════════════ */
+function showTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mob-btn').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-'+tab).style.display = 'block';
+  const navEl = document.getElementById('nav-'+tab);
+  if (navEl) navEl.classList.add('active');
+  const mobEl = document.getElementById('mob-'+tab);
+  if (mobEl) mobEl.classList.add('active');
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'main-page') document.getElementById('mobile-nav').style.display = 'flex';
+  else document.getElementById('mobile-nav').style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════════ */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openSleepModal() { renderSleepCoach('greeting'); openModal('sleep-coach-modal'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) closeModal(m.id); });
+});
+
+/* ══════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════ */
+let toastTmr;
+function showToast(msg, boom=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => t.classList.remove('show'), 2500);
+  if (boom) confetti();
+}
+
+function confetti() {
+  const cols = ['#C9A84C','#F5D078','#fff','#8B6914'];
+  const cont = document.createElement('div');
+  cont.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden';
+  for (let i=0;i<50;i++) {
+    const el = document.createElement('div');
+    const size = 5+Math.random()*8;
+    el.style.cssText = `position:absolute;left:${Math.random()*100}%;top:-14px;width:${size}px;height:${size}px;background:${cols[i%4]};border-radius:${Math.random()>.5?'50%':'2px'};animation:cf ${1.6+Math.random()*2}s ease-in ${Math.random()*.6}s forwards`;
+    cont.appendChild(el);
+  }
+  const style = document.createElement('style');
+  style.textContent = '@keyframes cf{to{top:105vh;opacity:0;transform:rotate(720deg)}}';
+  cont.appendChild(style);
+  document.body.appendChild(cont);
+  setTimeout(() => cont.remove(), 4000);
+}
+
+/* ══════════════════════════════════════════════════════════
+   KPIs & GAUGE
+══════════════════════════════════════════════════════════ */
+function updateKPIs() {
+  const today = TODAY();
+  const activeGoals = appData.goals.filter(g=>g.current<g.target).length;
+  const doneGoals = appData.goals.filter(g=>g.current>=g.target).length;
+  const completedHabits = appData.habits.filter(h=>(h.log?.[today]||0)>=h.target).length;
+  const totalHabits = appData.habits.length;
+  const prodPct = totalHabits===0?0:Math.round((completedHabits/totalHabits)*100);
+  const winsMonth = appData.wins.filter(w=>new Date(w.date).getMonth()===new Date().getMonth()).length;
+
+  document.getElementById('kpi-goals').textContent = activeGoals;
+  document.getElementById('kpi-goals-sub').textContent = `${doneGoals} erreicht`;
+  document.getElementById('kpi-habits').textContent = `${completedHabits}/${totalHabits}`;
+  document.getElementById('kpi-prod').textContent = `${prodPct}% erledigt`;
+  document.getElementById('kpi-wins').textContent = winsMonth;
+  document.getElementById('kpi-wins-sub').textContent = `${appData.wins.length} gesamt`;
+  document.getElementById('kpi-streak').textContent = appData.stats?.streak||1;
+  document.getElementById('habits-progress-text').textContent = `${completedHabits} von ${totalHabits} heute erledigt`;
+  document.getElementById('habits-pct-text').textContent = `${prodPct}%`;
+}
+
+function updateGauge() {
+  const today = TODAY();
+  const done = appData.habits.filter(h=>(h.log?.[today]||0)>=h.target).length;
+  const total = appData.habits.length;
+  const pct = total===0?0:(done/total);
+  const r=68,cx=90,cy=90;
+  const clamp = Math.min(pct,0.999);
+  const a = Math.PI*(1-clamp);
+  const ex = cx+r*Math.cos(a), ey = cy-r*Math.sin(a);
+  const large = pct>.5?1:0;
+  document.getElementById('gauge-path').setAttribute('d',
+    pct===0 ? `M 22 90 A 68 68 0 0 1 22 90` : `M 22 90 A 68 68 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`
+  );
+  document.getElementById('gauge-pct').textContent = `${Math.round(pct*100)}%`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GOALS
+══════════════════════════════════════════════════════════ */
+async function saveGoal() {
+  const title = document.getElementById('goal-title').value.trim();
+  if (!title) return showToast('Bitte Titel eingeben');
+  const goal = {
+    id:uid(), title,
+    category: document.getElementById('goal-cat').value,
+    target: Number(document.getElementById('goal-target').value)||100,
+    current:0, unit:document.getElementById('goal-unit').value,
+    deadline:document.getElementById('goal-deadline').value,
+    description:document.getElementById('goal-desc').value,
+    strategy:document.getElementById('goal-strategy').value,
+    nextSteps:document.getElementById('goal-steps').value,
+    dailyTasks:document.getElementById('goal-daily').value,
+    createdAt:new Date().toISOString()
+  };
+  appData.goals.push(goal);
+  await saveData(); renderAll(); closeModal('goal-modal');
+  ['goal-title','goal-target','goal-unit','goal-desc','goal-strategy','goal-steps','goal-daily'].forEach(id=>document.getElementById(id).value='');
+  showToast('Ziel gesetzt 🎯');
+}
+
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  if (!appData.goals.length) { el.innerHTML = '<div class="card" style="text-align:center;color:var(--gray);padding:40px">Noch keine Ziele. Setze dein erstes großes Ziel!</div>'; return; }
+  el.innerHTML = appData.goals.map(g => {
+    const c = GOAL_CATS[g.category]||GOAL_CATS.other;
+    const pct = Math.round((g.current/g.target)*100);
+    const done = pct>=100;
+    const dLeft = Math.ceil((new Date(g.deadline)-new Date())/86400000);
+    return `
+      <div class="${done?'card-gold':'card'} anim" style="cursor:pointer" onclick="openGoalDetail('${g.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div style="flex:1">
+            <span class="tag" style="margin-bottom:6px;display:inline-flex">${c.icon} ${c.label}</span>
+            ${done?'<span class="tag" style="margin-left:6px;color:#22D3A5;border-color:rgba(34,211,165,.3);background:rgba(34,211,165,.08)">✓ ERREICHT</span>':''}
+            <div style="font-size:16px;font-weight:700;margin-top:4px">${g.title}</div>
+          </div>
+          <div style="font-size:26px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-left:12px">${pct}%</div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.min(pct,100)}%"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <span style="font-size:11px;color:var(--gray)">${g.current} / ${g.target} ${g.unit}</span>
+          <span style="font-size:10px;color:${dLeft<30?'var(--gold)':'var(--gray-dim)'};">${done?'Erreicht!':dLeft>0?dLeft+'d verbleibend':dLeft===0?'Heute!':'Abgelaufen'}</span>
+        </div>
+        ${g.nextSteps?`<div style="font-size:11px;color:var(--gold);margin-top:8px;font-weight:600">→ ${g.nextSteps.split('\n')[0]}</div>`:''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDashGoals() {
+  const el = document.getElementById('dash-goals-list');
+  const active = appData.goals.filter(g=>g.current<g.target).slice(0,3);
+  if (!active.length) { el.innerHTML = '<div style="color:var(--gray);font-size:13px">Keine aktiven Ziele.<br/><a href="#" onclick="showTab(\'goals\');return false" style="color:var(--gold)">Jetzt setzen →</a></div>'; return; }
+  el.innerHTML = active.map(g => {
+    const c = GOAL_CATS[g.category]||GOAL_CATS.other;
+    const pct = Math.round((g.current/g.target)*100);
+    return `
+      <div style="margin-bottom:14px;cursor:pointer" onclick="showTab('goals')">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;align-items:center">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--gold);font-size:12px">${c.icon}</span>
+            <span style="font-size:13px;font-weight:600">${g.title}</span>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--gold)">${pct}%</span>
+        </div>
+        <div class="progress-track sm"><div class="progress-fill" style="width:${Math.min(pct,100)}%"></div></div>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px">${g.current} / ${g.target} ${g.unit}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openGoalDetail(id) {
+  const g = appData.goals.find(x=>x.id===id);
+  if (!g) return;
+  const c = GOAL_CATS[g.category]||GOAL_CATS.other;
+  const pct = Math.round((g.current/g.target)*100);
+  const remaining = g.target - g.current;
+  document.getElementById('goal-detail-title').textContent = `${c.icon} ${c.label}`;
+  document.getElementById('goal-detail-body').innerHTML = `
+    <div style="margin-bottom:16px">
+      <span class="tag">${c.icon} ${c.label}</span>
+      <div style="font-size:18px;font-weight:800;margin-top:8px">${g.title}</div>
+    </div>
+    <div class="card-gold" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+        <div><div style="font-size:32px;font-weight:900;background:var(--gradV);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${pct}%</div><div style="font-size:10px;color:var(--gray)">FORTSCHRITT</div></div>
+        <div style="text-align:right"><div style="font-size:16px;font-weight:700">${g.current} / ${g.target} ${g.unit}</div><div style="font-size:11px;color:var(--gray)">${remaining>0?'Noch '+remaining+' '+g.unit:'ERREICHT!'}</div></div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${Math.min(pct,100)}%"></div></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>FORTSCHRITT AKTUALISIEREN</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="range" min="0" max="${g.target}" value="${g.current}" style="flex:1;accent-color:var(--gold);background:none;border:none;padding:0" oninput="updateGoalProgress('${g.id}',this.value)"/>
+        <input type="number" value="${g.current}" min="0" max="${g.target}" style="width:80px;text-align:center" oninput="updateGoalProgress('${g.id}',this.value)"/>
+      </div>
+    </div>
+    ${g.description?`<div style="margin-bottom:14px"><label>BESCHREIBUNG</label><div style="font-size:13px;color:#bbb;line-height:1.6;padding:12px 14px;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid var(--card-border)">${g.description}</div></div>`:''}
+    ${g.strategy?`<div style="margin-bottom:14px"><label>STRATEGIE</label><div style="font-size:13px;color:#bbb;line-height:1.6;padding:12px 14px;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid var(--card-border)">${g.strategy}</div></div>`:''}
+    ${g.nextSteps?`<div style="margin-bottom:14px"><label>NÄCHSTE SCHRITTE</label>${g.nextSteps.split('\n').filter(Boolean).map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--card-border);margin-bottom:6px"><span style="color:var(--gold);font-size:12px;font-weight:700;flex-shrink:0">${i+1}.</span><span style="font-size:12px;color:#bbb;line-height:1.5">${s}</span></div>`).join('')}</div>`:''}
+    ${g.dailyTasks?`<div style="margin-bottom:16px"><label>TÄGLICHE AUFGABEN</label><div style="font-size:13px;color:#bbb;line-height:1.6;padding:12px 14px;background:var(--gold-bg);border-radius:12px;border:1px solid var(--gold-border)">${g.dailyTasks}</div></div>`:''}
+    <button onclick="deleteGoal('${g.id}')" style="background:rgba(255,80,80,.06);border:1px solid rgba(255,80,80,.15);color:#f87171;border-radius:10px;padding:10px 16px;font-weight:700;font-size:12px;width:100%">Ziel löschen</button>
+  `;
+  openModal('goal-detail-modal');
+}
+
+async function updateGoalProgress(id, val) {
+  const g = appData.goals.find(x=>x.id===id);
+  if (!g) return;
+  const prev = g.current, next = Math.max(0,Math.min(Number(val),g.target));
+  g.current = next;
+  if (prev < g.target && next >= g.target) { showToast('Ziel erreicht! 🏆', true); }
+  await saveData(); renderAll();
+  // refresh detail
+  const detailOpen = document.getElementById('goal-detail-modal').classList.contains('open');
+  if (detailOpen) openGoalDetail(id);
+}
+
+async function deleteGoal(id) {
+  appData.goals = appData.goals.filter(g=>g.id!==id);
+  await saveData(); renderAll();
+  closeModal('goal-detail-modal');
+  showToast('Ziel gelöscht');
+}
+
+/* ══════════════════════════════════════════════════════════
+   HABITS
+══════════════════════════════════════════════════════════ */
+async function saveHabit() {
+  const title = document.getElementById('habit-title').value.trim();
+  if (!title) return showToast('Bitte Titel eingeben');
+  const h = {
+    id:uid(), title, icon:document.getElementById('habit-icon').value||'◈',
+    unit:document.getElementById('habit-unit').value||'×',
+    target:Number(document.getElementById('habit-target').value)||1,
+    log:{}, streak:0, createdAt:new Date().toISOString()
+  };
+  appData.habits.push(h);
+  await saveData(); renderAll(); closeModal('habit-modal');
+  document.getElementById('habit-title').value='';
+  document.getElementById('habit-icon').value='';
+  document.getElementById('habit-target').value='';
+  document.getElementById('habit-unit').value='';
+  showToast('Habit hinzugefügt ✅');
+}
+
+async function logHabit(id) {
+  const today = TODAY();
+  const h = appData.habits.find(x=>x.id===id);
+  if (!h) return;
+  const prev = h.log?.[today]||0, next = Math.min(prev+1, h.target*2);
+  const wasDone = prev>=h.target, nowDone = next>=h.target;
+  h.log = h.log||{}; h.log[today] = next;
+  if (!wasDone && nowDone) {
+    const yest = new Date(Date.now()-86400000).toDateString();
+    h.streak = (h.log?.[yest]||0)>=h.target ? (h.streak||0)+1 : 1;
+    showToast('Habit abgeschlossen! +10 XP', true);
+    appData.stats.xp = (appData.stats.xp||0)+10;
+  }
+  await saveData(); renderAll();
+}
+
+async function deleteHabit(id) {
+  appData.habits = appData.habits.filter(h=>h.id!==id);
+  await saveData(); renderAll();
+  showToast('Habit entfernt');
+}
+
+function renderHabits() {
+  const today = TODAY();
+  const el = document.getElementById('habits-list');
+  if (!appData.habits.length) {
+    el.innerHTML = '<div class="card" style="text-align:center;color:var(--gray);padding:40px">Noch keine Habits. Fang mit einem kleinen Schritt an!</div>';
+    return;
+  }
+  el.innerHTML = appData.habits.map(h => {
+    const val = h.log?.[today]||0, done = val>=h.target;
+    const streakHtml = (h.streak||0)>0 ? `<div style="font-size:10px;color:var(--gold);margin-top:6px;margin-left:56px;font-weight:700">🔥 ${h.streak} TAGE STREAK</div>` : '';
+    return `
+      <div class="habit-card ${done?'done':''} anim">
+        <div class="habit-icon">${h.icon||'◈'}</div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:14px;font-weight:600;color:${done?'var(--gold)':'var(--white)'}">${h.title}</span>
+            <span style="font-size:11px;font-weight:700;color:${done?'var(--gold)':'var(--gray)'}">${val}/${h.target} <span style="font-weight:400;font-size:10px">${h.unit}</span></span>
+          </div>
+          <div class="progress-track sm"><div class="progress-fill" style="width:${Math.min((val/h.target)*100,100)}%"></div></div>
+        </div>
+        <button class="habit-check" onclick="logHabit('${h.id}')">${done?'✓':'+'}</button>
+        ${streakHtml}
+        <button onclick="deleteHabit('${h.id}')" style="position:absolute;display:none" id="del-h-${h.id}">×</button>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   WINS
+══════════════════════════════════════════════════════════ */
+async function saveWin() {
+  const title = document.getElementById('win-title').value.trim();
+  if (!title) return showToast('Bitte Titel eingeben');
+  const w = {
+    id:uid(), title, category:document.getElementById('win-cat').value,
+    note:document.getElementById('win-note').value, date:new Date().toISOString()
+  };
+  appData.wins.push(w);
+  appData.stats.xp = (appData.stats.xp||0)+50;
+  await saveData(); renderAll(); closeModal('win-modal');
+  document.getElementById('win-title').value='';
+  document.getElementById('win-note').value='';
+  showToast('Win gespeichert! 🎉', true);
+}
+
+async function deleteWin(id) {
+  appData.wins = appData.wins.filter(w=>w.id!==id);
+  await saveData(); renderAll();
+}
+
+function renderWins() {
+  const el = document.getElementById('wins-list');
+  if (!appData.wins.length) { el.innerHTML = '<div class="card" style="text-align:center;color:var(--gray);padding:40px">Trage deinen ersten Win ein!</div>'; return; }
+  el.innerHTML = [...appData.wins].reverse().map(w => {
+    const c = GOAL_CATS[w.category]||GOAL_CATS.other;
+    return `
+      <div class="card anim" style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:42px;height:42px;border-radius:12px;background:var(--gold-bg);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:16px;font-weight:900;flex-shrink:0">${c.icon}</div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <span style="font-size:14px;font-weight:600">${w.title}</span>
+            <span style="font-size:10px;color:var(--gray-dim);flex-shrink:0;margin-left:8px;font-family:monospace">${new Date(w.date).toLocaleDateString('de-DE',{day:'2-digit',month:'short'})}</span>
+          </div>
+          ${w.note?`<div style="font-size:12px;color:var(--gray);margin-top:4px;line-height:1.4">${w.note}</div>`:''}
+          <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+            <span class="tag">${c.label}</span>
+            <button onclick="deleteWin('${w.id}')" style="background:none;border:none;color:var(--gray-dim);font-size:11px;cursor:pointer">löschen</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  renderHeatmap();
+}
+
+/* ══════════════════════════════════════════════════════════
+   HEATMAP
+══════════════════════════════════════════════════════════ */
+function renderHeatmap() {
+  const el = document.getElementById('wins-heatmap');
+  document.getElementById('heatmap-year').textContent = new Date().getFullYear();
+  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+  const curMonth = new Date().getMonth();
+  el.innerHTML = months.map((m,i) => {
+    const n = appData.wins.filter(w=>new Date(w.date).getMonth()===i).length;
+    const alpha = n===0?0:Math.min(.15+(n/5)*.85,1);
+    const isNow = i===curMonth;
+    return `
+      <div>
+        <div class="heatmap-cell" style="background:${n===0?'rgba(255,255,255,.03)':`rgba(201,168,76,${alpha})`};border:${isNow?'1px solid var(--gold)':'none'};color:${n>2?'#000':'var(--gold)'}">
+          ${n>0?n:''}
+        </div>
+        <div class="heatmap-month" style="color:${isNow?'var(--gold)':'var(--gray-dim)'}">${m}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SLEEP
+══════════════════════════════════════════════════════════ */
+function updateSleepDisplay() {
+  const bed = appData.sleepSchedule?.bedtime||'23:00';
+  const wake = appData.sleepSchedule?.wakeTime||'07:00';
+  document.getElementById('sleep-bed-disp').textContent = bed;
+  document.getElementById('sleep-wake-disp').textContent = wake;
+  document.getElementById('modal-bedtime').value = bed;
+  document.getElementById('modal-waketime').value = wake;
+}
+
+async function saveSleepFromModal() {
+  appData.sleepSchedule.bedtime = document.getElementById('modal-bedtime').value;
+  appData.sleepSchedule.wakeTime = document.getElementById('modal-waketime').value;
+  appData.sleepSchedule.lastShown = '';
+  await saveData(); updateSleepDisplay();
+  closeModal('sleep-settings-modal');
+  showToast('Schlafplan gespeichert ✓');
+}
+
+async function saveSleepSettings() {
+  appData.sleepSchedule.bedtime = document.getElementById('settings-bedtime').value;
+  appData.sleepSchedule.wakeTime = document.getElementById('settings-waketime').value;
+  appData.sleepSchedule.lastShown = '';
+  await saveData(); updateSleepDisplay();
+  showToast('Schlafplan gespeichert ✓');
+}
+
+function checkSleepTime() {
+  const now = `${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
+  const bed = appData.sleepSchedule?.bedtime;
+  if (now===bed && appData.sleepSchedule?.lastShown!==TODAY()) {
+    appData.sleepSchedule.lastShown = TODAY();
+    saveData();
+    renderSleepCoach('greeting');
+    openModal('sleep-coach-modal');
+  }
+}
+
+const SLEEP_TECHNIQUES = [
+  {title:"4-7-8 Atemtechnik",desc:"Einatmen 4 Sek · Halten 7 Sek · Ausatmen 8 Sek. Wiederhole 4x. Aktiviert dein Nervensystem für Ruhe."},
+  {title:"Gedanken aufschreiben",desc:"Nimm ein Notizbuch. Schreibe alles auf, was dir durch den Kopf geht. Leer den Kopf – dann schläfst du schneller ein."},
+  {title:"Progressive Muskelentspannung",desc:"Spanne jede Muskelgruppe 5 Sek an, dann loslassen. Von Füßen bis Kopf. Dein Körper schaltet ab."},
+  {title:"Handy weglegen",desc:"Kein Screen mindestens 20 Minuten vor dem Schlafen. Das Blaulicht blockiert Melatonin. Weg damit."},
+  {title:"Dunkler Raum, keine Reize",desc:"Völlige Dunkelheit. Keine Geräusche. Kühle Temperatur (18°C). Dein Gehirn braucht Signale für Schlaf."},
+];
+
+function renderSleepCoach(step, extra) {
+  const body = document.getElementById('sleep-coach-body');
+  if (step==='greeting') {
+    body.innerHTML = `
+      <div class="card-gold" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="font-size:10px;color:var(--gold);font-weight:700;letter-spacing:2px">MENTOR</div>
+        </div>
+        <div style="font-size:14px;color:#ddd;line-height:1.6">Hey. Es ist deine eingestellte Schlafenszeit. Gibt es gerade einen echten Grund, weiter wach zu bleiben?<br/><br/>Wenn nicht – dann ist guter Schlaf gerade dein wichtigster Schritt zu deinen Zielen.</div>
+      </div>
+      <div style="font-size:10px;color:var(--gray);font-weight:700;letter-spacing:1px;margin-bottom:10px">WAS TRIFFT ZU?</div>
+      <div class="sleep-options">
+        <button class="sleep-opt" onclick="renderSleepCoach('cant_sleep')">Ich kann nicht schlafen <span style="color:var(--gold)">›</span></button>
+        <button class="sleep-opt" onclick="renderSleepCoach('work')">Ich möchte noch arbeiten <span style="color:var(--gold)">›</span></button>
+        <button class="sleep-opt" onclick="sendMentor('Ich brauche Motivation');closeModal('sleep-coach-modal');showTab('mentor')">Ich brauche Motivation <span style="color:var(--gold)">›</span></button>
+        <button class="sleep-opt" onclick="renderSleepCoach('techniques')">Zeig mir eine Schlaftechnik <span style="color:var(--gold)">›</span></button>
+        <button class="sleep-opt" onclick="renderSleepCoach('goodbye')" style="background:var(--gold-bg);border-color:var(--gold-border);color:var(--gold)">Ich gehe jetzt schlafen ✓</button>
+      </div>`;
+  } else if (step==='cant_sleep') {
+    body.innerHTML = `
+      <div class="card-gold" style="margin-bottom:16px">
+        <div style="font-size:10px;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:8px">MENTOR</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.6">Das kenne ich. Dein Kopf läuft noch auf Hochtouren. Das ist normal. Hier sind bewährte Techniken, die wirklich helfen:</div>
+      </div>
+      ${SLEEP_TECHNIQUES.map((t,i)=>`<div class="technique-item" id="tech-${i}" onclick="this.classList.toggle('open');this.querySelector('.technique-desc').style.display=this.classList.contains('open')?'block':'none'"><div class="technique-title">${t.title}</div><div class="technique-desc">${t.desc}</div></div>`).join('')}
+      <button class="btn-gold" style="width:100%;padding:14px;margin-top:8px" onclick="closeModal('sleep-coach-modal')">Danke, ich versuche es</button>`;
+  } else if (step==='work') {
+    body.innerHTML = `
+      <div class="card-gold" style="margin-bottom:20px">
+        <div style="font-size:10px;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:8px">MENTOR</div>
+        <div style="font-size:14px;color:#ddd;line-height:1.6">Ich respektiere deinen Einsatz. Aber sei ehrlich mit dir:<br/><br/><strong style="color:var(--gold-light)">Ist diese Arbeit gerade wirklich notwendig – oder wäre dein morgiges Ich stärker, wenn du jetzt schläfst?</strong><br/><br/>Ausgeruhte Menschen arbeiten schneller, kreativer und machen weniger Fehler. Schlaf ist kein Luxus – er ist dein Leistungsvorteil.</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-ghost" style="flex:1;padding:13px" onclick="closeModal('sleep-coach-modal')">Ich arbeite weiter</button>
+        <button class="btn-gold" style="flex:1;padding:13px" onclick="renderSleepCoach('goodbye')">Ich schlafe jetzt</button>
+      </div>`;
+  } else if (step==='goodbye') {
+    body.innerHTML = `
+      <div class="card-gold" style="text-align:center;padding:28px">
+        <div style="font-size:36px;margin-bottom:12px">◐</div>
+        <div style="font-size:18px;font-weight:800;color:var(--gold-light);margin-bottom:8px">Gute Nacht.</div>
+        <div style="font-size:13px;color:#ddd;line-height:1.6">Dein morgiges Ich wird dir danken. Schlaf gut und komm morgen stärker zurück.</div>
+      </div>
+      <button class="btn-gold" style="width:100%;padding:14px;margin-top:16px" onclick="closeModal('sleep-coach-modal')">Schlafen gehen ◐</button>`;
+  } else if (step==='techniques') {
+    renderSleepCoach('cant_sleep');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MENTOR CHAT
+══════════════════════════════════════════════════════════ */
+async function sendMentor(quickMsg) {
+  const input = document.getElementById('mentor-input');
+  const msg = quickMsg || input?.value?.trim();
+  if (!msg || mentorLoading) return;
+  if (input) input.value = '';
+
+  // Add user message
+  appData.mentorChat = appData.mentorChat||[];
+  appData.mentorChat.push({role:'user',content:msg});
+  renderMentorChat();
+  mentorLoading = true;
+
+  // Build context from goals
+  const goalsCtx = appData.goals.slice(0,3).map(g=>`"${g.title}" (${Math.round((g.current/g.target)*100)}% erreicht)`).join(', ');
+  const systemPrompt = `Du bist der persönliche Mentor in der App Peakmodo. Dein Name ist Mentor. Du sprichst Deutsch, bist direkt, klar, motivierend und ehrlich – nicht weich oder kitschig. Du hilfst bei: Zielerreichung, Schlafroutine, Business, Finanzen, Sport, Spiritualität, Disziplin, Gewohnheiten und persönlicher Entwicklung. Nutzer-Ziele: ${goalsCtx||'noch keine Ziele eingetragen'}. Antworte kompakt (max 4-5 Sätze), auf den Punkt, mit konkreten Tipps. Keine langen Einleitungen.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:systemPrompt,
+        messages:appData.mentorChat.slice(-10)
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Verbindungsfehler. Versuche es erneut.';
+    appData.mentorChat.push({role:'assistant',content:reply});
+  } catch {
+    appData.mentorChat.push({role:'assistant',content:'Verbindungsfehler. Bitte Internetverbindung prüfen.'});
+  }
+
+  mentorLoading = false;
+  await saveData();
+  renderMentorChat();
+}
+
+function renderMentorChat() {
+  const el = document.getElementById('chat-messages');
+  if (!el) return;
+  const msgs = appData.mentorChat||[];
+  if (!msgs.length) return;
+
+  const mentorImgSrc = localStorage.getItem('peakmodo_mentor_img')||'';
+  const avatarHtml = mentorImgSrc
+    ? `<div class="mentor-avatar-sm"><img src="${mentorImgSrc}" alt="M"/></div>`
+    : `<div style="width:36px;height:36px;border-radius:10px;background:var(--gold-bg);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--gold);flex-shrink:0">M</div>`;
+
+  el.innerHTML = msgs.map(m => `
+    <div class="msg ${m.role}">
+      ${m.role==='assistant'?avatarHtml:''}
+      <div class="msg-bubble">${m.content}</div>
+    </div>
+  `).join('');
+
+  if (mentorLoading) {
+    el.innerHTML += `<div class="msg assistant">${avatarHtml}<div class="msg-bubble" style="animation:pulse 1s infinite;color:var(--gray)">···</div></div>`;
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════════ */
+async function saveSettings() {
+  appData.settings.name = document.getElementById('settings-name').value.trim();
+  await saveData();
+  showToast('Gespeichert ✓');
+}
+
+async function clearAllData() {
+  if (!confirm('Wirklich alle Daten löschen? Das kann nicht rückgängig gemacht werden.')) return;
+  appData = { goals:[], habits:[], wins:[], mentorChat:[], sleepSchedule:{bedtime:'23:00',wakeTime:'07:00',enabled:true,lastShown:''}, stats:{streak:1,lastSeen:TODAY(),xp:0}, settings:{name:'',quoteIndex:0} };
+  await saveData(); renderAll();
+  showToast('Alle Daten gelöscht');
+}
+
+/* ══════════════════════════════════════════════════════════
+   STARTUP
+══════════════════════════════════════════════════════════ */
+async function start() {
+  const hasSupabase = initSupabase();
+
+  if (hasSupabase) {
+    // Check existing session
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      await onLogin();
+      return;
+    }
+  } else {
+    // No Supabase – check for local session
+    const localUser = localStorage.getItem('peakmodo_local_user');
+    if (localUser) {
+      try {
+        currentUser = JSON.parse(localUser);
+        await onLogin();
+        return;
+      } catch(e) {}
+    }
+  }
+  showPage('auth-page');
+}
+
+// Patch doLogin for local mode
+const _origLogin = doLogin;
+window.doLogin = async function() {
+  if (SUPABASE_URL !== 'DEINE_SUPABASE_URL_HIER') { await _origLogin(); return; }
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (!email||!pw) return showAuthError('Bitte E-Mail und Passwort eingeben.');
+  currentUser = {id:'local_'+btoa(email),email,user_metadata:{full_name:email.split('@')[0]}};
+  localStorage.setItem('peakmodo_local_user',JSON.stringify(currentUser));
+  await onLogin();
+};
+window.doRegister = async function() {
+  if (SUPABASE_URL !== 'DEINE_SUPABASE_URL_HIER') { await doRegister(); return; }
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-pw').value;
+  if (!name||!email||!pw) return showAuthError('Alle Felder ausfüllen.');
+  if (pw.length<6) return showAuthError('Passwort min. 6 Zeichen.');
+  currentUser = {id:'local_'+btoa(email),email,user_metadata:{full_name:name}};
+  localStorage.setItem('peakmodo_local_user',JSON.stringify(currentUser));
+  appData.settings.name=name;
+  await onLogin();
+};
+window.doLogout = async function() {
+  if (sb) await sb.auth.signOut();
+  localStorage.removeItem('peakmodo_local_user');
+  currentUser=null;
+  clearInterval(sleepCheckInterval);
+  showPage('auth-page');
+};
+
+start();
+</script>
+</body>
+</html>
