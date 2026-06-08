@@ -10,7 +10,7 @@ Die App hilft Nutzern dabei, ihre Ziele zu erreichen durch tägliches Tracking, 
 ---
 
 ## Tech Stack
-- **Frontend (Web):** Vanilla HTML/CSS/JS → `public/index.html`
+- **Frontend (Web):** Vanilla HTML/CSS/JS → `index.html`
 - **Frontend (Mobile App):** React → `src/PeakmodoApp.jsx`
 - **Task Manager:** React → `src/PeakmodoTasks.jsx`
 - **Datenbank & Auth:** Supabase
@@ -105,8 +105,7 @@ Er spricht direkt, motivierend, ehrlich – nicht weich oder kitschig.
 ## Dateistruktur
 ```
 peakmodo/
-├── public/
-│   └── index.html          ← Haupt-Webapp (Vercel deployed)
+├── index.html          ← Haupt-Webapp (Vercel deployed)
 ├── src/
 │   ├── PeakmodoApp.jsx     ← Mobile App Version (React)
 │   └── PeakmodoTasks.jsx   ← KI Task Manager (React)
